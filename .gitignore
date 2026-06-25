@@ -1,0 +1,29 @@
+# CMake build directories
+/cmake-build-debug/
+/build-mingw/
+/build-test/
+/build/
+/out/
+
+# IDE files
+/.idea/
+/*.user
+/*.suo
+/*.userossc
+/*.sln
+/*.vcxproj
+/*.filters
+
+# Compiler outputs & binaries
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.pdb
+
+# Temporary testing outputs
+/test_comp.*
