@@ -1,3 +1,11 @@
+// ====================================================================================
+// ПРИМЕЧАНИЕ: Данный файл использует готовые решения из открытого доступа (boilerplate):
+// Инициализация Win32 окна, настройка Direct3D 11, функции CreateDeviceD3D, CleanupDeviceD3D,
+// WndProc и основной цикл рендеринга основаны на официальном открытом примере Dear ImGui:
+// https://github.com/ocornut/imgui/tree/master/examples/example_win32_directx11
+// Лицензия: MIT
+// ====================================================================================
+
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"

@@ -1,3 +1,9 @@
+// ====================================================================================
+// ПРИМЕЧАНИЕ: Функции диалоговых окон open_file_dialog и save_file_dialog используют
+// стандартные шаблоны вызова Windows API Common Dialog Box (GetOpenFileNameA / GetSaveFileNameA)
+// из Windows SDK (библиотека commdlg.h).
+// ====================================================================================
+
 #include <windows.h>
 #include <commdlg.h>
 #include <fstream>
