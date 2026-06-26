@@ -133,8 +133,9 @@ int main(int, char**)
     int is_power_of_A = 1; // 1 — возводим A(x), 0 — возводим B(x)
 
     // Параметры для отрисовки графика
-    float plot_x_min = -5.0f;
-    float plot_x_max = 5.0f;
+    float plot_zoom = 5.0f; // Уровень зума (симметричные границы X от -zoom до +zoom)
+    float plot_x_min = -plot_zoom;
+    float plot_x_max = plot_zoom;
     const int plot_points = 200;
     vector<float> plot_data_x(plot_points);
     vector<float> plot_data_A(plot_points);
@@ -146,6 +147,8 @@ int main(int, char**)
 
     // Лямбда-функция для пересчета точек графиков при изменении масштаба или самих формул
     auto update_plots = [&]() {
+        plot_x_min = -plot_zoom;
+        plot_x_max = plot_zoom;
         float step = (plot_x_max - plot_x_min) / (plot_points - 1);
         for (int i = 0; i < plot_points; ++i) {
             float x = plot_x_min + i * step;
@@ -593,7 +596,8 @@ int main(int, char**)
             ImGui::Separator();
             ImGui::Spacing();
 
-            float result_card_h = (debug_mode && !debug_steps.empty()) ? 80.0f : 100.0f;
+            // Высота карточки результата увеличена, чтобы помещались длинные уравнения
+            float result_card_h = (debug_mode && !debug_steps.empty()) ? 95.0f : 120.0f;
             ImGui::BeginChild("ResultCard", ImVec2(0, result_card_h), true);
             {
                 ImGui::TextColored(Theme::Gold, "%s", result_title.c_str());
@@ -607,11 +611,11 @@ int main(int, char**)
             }
             ImGui::EndChild();
 
-            // Если включен режим отладки и накоплены пошаговые инструкции, выводим их в лог
+            // Если включен режим отладки и накоплены пошаговые инструкции, выводим их в лог (высота увеличена до 200px)
             if (debug_mode && !debug_steps.empty()) {
                 ImGui::Spacing();
                 ImGui::TextColored(Theme::Primary, "Пошаговый разбор решения (Отладка):");
-                ImGui::BeginChild("DebugStepsCard", ImVec2(0, 160), true);
+                ImGui::BeginChild("DebugStepsCard", ImVec2(0, 200), true);
                 ImGui::TextUnformatted(debug_steps.c_str());
                 ImGui::EndChild();
             }
@@ -629,19 +633,11 @@ int main(int, char**)
             ImGui::Checkbox("Показать B(x) [Зеленый]", &plot_show_B); ImGui::SameLine();
             ImGui::Checkbox("Показать Результат [Желтый]", &plot_show_Res);
 
-            // Настройка границ оси абсцисс (X)
+            // Настройка уровня зума по оси X (интервал [-зум, +зум])
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Границы X: Мин"); ImGui::SameLine();
-            ImGui::SetNextItemWidth(80);
-            if (ImGui::InputFloat("##xmin", &plot_x_min, 1.0f, 5.0f, "%.1f")) {
-                if (plot_x_min >= plot_x_max) plot_x_min = plot_x_max - 1.0f;
-                update_plots();
-            }
-            ImGui::SameLine();
-            ImGui::Text("Макс"); ImGui::SameLine();
-            ImGui::SetNextItemWidth(80);
-            if (ImGui::InputFloat("##xmax", &plot_x_max, 1.0f, 5.0f, "%.1f")) {
-                if (plot_x_max <= plot_x_min) plot_x_max = plot_x_min + 1.0f;
+            ImGui::Text("Зум оси X:"); ImGui::SameLine();
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 10.0f);
+            if (ImGui::SliderFloat("##zoom", &plot_zoom, 1.0f, 100.0f, "%.1f")) {
                 update_plots();
             }
 
