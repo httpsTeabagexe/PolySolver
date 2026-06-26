@@ -133,9 +133,11 @@ int main(int, char**)
     int is_power_of_A = 1; // 1 — возводим A(x), 0 — возводим B(x)
 
     // Параметры для отрисовки графика
-    float plot_zoom = 5.0f; // Уровень зума (симметричные границы X от -zoom до +zoom)
-    float plot_x_min = -plot_zoom;
-    float plot_x_max = plot_zoom;
+    float plot_x_min = -5.0f;
+    float plot_x_max = 5.0f;
+    float plot_y_min = -10.0f;
+    float plot_y_max = 10.0f;
+    bool plot_auto_y = true; // Автоматическое выравнивание по оси Y по умолчанию
     const int plot_points = 200;
     vector<float> plot_data_x(plot_points);
     vector<float> plot_data_A(plot_points);
@@ -147,8 +149,6 @@ int main(int, char**)
 
     // Лямбда-функция для пересчета точек графиков при изменении масштаба или самих формул
     auto update_plots = [&]() {
-        plot_x_min = -plot_zoom;
-        plot_x_max = plot_zoom;
         float step = (plot_x_max - plot_x_min) / (plot_points - 1);
         for (int i = 0; i < plot_points; ++i) {
             float x = plot_x_min + i * step;
@@ -633,87 +633,146 @@ int main(int, char**)
             ImGui::Checkbox("Показать B(x) [Зеленый]", &plot_show_B); ImGui::SameLine();
             ImGui::Checkbox("Показать Результат [Желтый]", &plot_show_Res);
 
-            // Настройка уровня зума по оси X (интервал [-зум, +зум])
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("Зум оси X:"); ImGui::SameLine();
-            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 10.0f);
-            if (ImGui::SliderFloat("##zoom", &plot_zoom, 1.0f, 100.0f, "%.1f")) {
+            // Кнопки сброса масштаба и включения автовыравнивания по Y
+            if (ImGui::Button("Домой (Сбросить вид)")) {
+                plot_x_min = -5.0f;
+                plot_x_max = 5.0f;
+                plot_y_min = -10.0f;
+                plot_y_max = 10.0f;
+                plot_auto_y = true;
                 update_plots();
             }
+            ImGui::SameLine();
+            ImGui::Checkbox("Авто-масштаб по Y", &plot_auto_y);
 
             ImGui::Spacing();
 
-            // Отрисовка холста для рисования осей и кривых графиков
+            // Определение положения и размера холста
             ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
             ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-            if (canvas_size.y < 160.0f) canvas_size.y = 160.0f; // Задаем минимальную высоту холста
+            if (canvas_size.y < 250.0f) canvas_size.y = 250.0f; // Задаем комфортную высоту холста
 
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            // Заливаем холст темно-серым фоном
-            draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), IM_COL32(24, 25, 30, 255), 4.0f);
-            draw_list->AddRect(canvas_pos, ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), IM_COL32(50, 52, 60, 255), 4.0f);
+            // Делаем область холста интерактивной через невидимую кнопку ImGui
+            ImGui::InvisibleButton("canvas_interact", canvas_size);
 
-            // Определение масштабирования по оси ординат (Y)
-            float y_min = -10.0f;
-            float y_max = 10.0f;
-
-            // Находим минимальные и максимальные значения функций на выбранном интервале, чтобы график масштабировался красиво
-            bool first_val = true;
-            auto check_y_bounds = [&](const vector<float>& y_data, bool show) {
-                if (!show) return;
-                for (float val : y_data) {
-                    if (isnan(val) || isinf(val)) continue;
-                    // Ограничиваем экстремальные пиковые значения, чтобы график не сжимался в линию
-                    if (val > 1000.0f) val = 1000.0f;
-                    if (val < -1000.0f) val = -1000.0f;
-                    if (first_val) {
-                        y_min = val;
-                        y_max = val;
-                        first_val = false;
-                    } else {
-                        if (val < y_min) y_min = val;
-                        if (val > y_max) y_max = val;
-                    }
+            // Обработка перетаскивания (зажатая левая кнопка мыши перемещает область графика)
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                ImVec2 delta = ImGui::GetIO().MouseDelta;
+                if (delta.x != 0.0f || delta.y != 0.0f) {
+                    float dx = delta.x * (plot_x_max - plot_x_min) / canvas_size.x;
+                    float dy = delta.y * (plot_y_max - plot_y_min) / canvas_size.y;
+                    plot_x_min -= dx;
+                    plot_x_max -= dx;
+                    plot_y_min += dy; // Знак плюс, так как пиксели Y идут сверху вниз
+                    plot_y_max += dy;
+                    plot_auto_y = false; // Отключаем авто-Y, раз пользователь двигает график вручную
+                    update_plots();
                 }
-            };
-
-            check_y_bounds(plot_data_A, plot_show_A);
-            check_y_bounds(plot_data_B, plot_show_B);
-            check_y_bounds(plot_data_Res, plot_show_Res);
-
-            // Добавляем отступы по краям графика, чтобы вершины кривых не упирались в рамку
-            if (y_max == y_min) {
-                y_max += 1.0f;
-                y_min -= 1.0f;
-            } else {
-                float padding = (y_max - y_min) * 0.1f;
-                y_max += padding;
-                y_min -= padding;
             }
 
-            // Функция преобразования математических координат в экранные пиксели холста
+            // Получение позиции мыши и данных ввода
+            ImVec2 mouse_pos = ImGui::GetMousePos();
+            ImGuiIO& io = ImGui::GetIO();
+
+            // Обработка масштабирования колесиком мыши с центрированием на курсоре (как в Desmos/Maps)
+            if (ImGui::IsItemHovered()) {
+                float wheel = io.MouseWheel;
+                if (wheel != 0.0f) {
+                    float mouse_x_ratio = (mouse_pos.x - canvas_pos.x) / canvas_size.x;
+                    float mouse_y_ratio = 1.0f - (mouse_pos.y - canvas_pos.y) / canvas_size.y;
+                    
+                    float mouse_x_math = plot_x_min + mouse_x_ratio * (plot_x_max - plot_x_min);
+                    float mouse_y_math = plot_y_min + mouse_y_ratio * (plot_y_max - plot_y_min);
+                    
+                    // Шаг масштабирования в 10%
+                    float zoom_factor = (wheel > 0.0f) ? 0.9f : 1.111f;
+                    
+                    plot_x_min = mouse_x_math - (mouse_x_math - plot_x_min) * zoom_factor;
+                    plot_x_max = mouse_x_math + (plot_x_max - mouse_x_math) * zoom_factor;
+                    
+                    // Если включен авто-Y, масштабируем только X, а Y подстроится сам. Иначе масштабируем обе оси
+                    if (!plot_auto_y) {
+                        plot_y_min = mouse_y_math - (mouse_y_math - plot_y_min) * zoom_factor;
+                        plot_y_max = mouse_y_math + (plot_y_max - mouse_y_math) * zoom_factor;
+                    } else {
+                        // Также отключаем авто-Y, если пользователь прицельно зумирует
+                        plot_y_min = mouse_y_math - (mouse_y_math - plot_y_min) * zoom_factor;
+                        plot_y_max = mouse_y_math + (plot_y_max - mouse_y_math) * zoom_factor;
+                        plot_auto_y = false;
+                    }
+                    update_plots();
+                }
+            }
+
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            
+            // Заливка фона холста
+            draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), IM_COL32(20, 21, 25, 255), 4.0f);
+            draw_list->AddRect(canvas_pos, ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), IM_COL32(50, 52, 60, 255), 4.0f);
+
+            // Если активен режим авто-масштабирования по Y, рассчитываем границы Y автоматически
+            if (plot_auto_y) {
+                bool first_val = true;
+                float temp_y_min = -10.0f;
+                float temp_y_max = 10.0f;
+                
+                auto check_y_bounds = [&](const vector<float>& y_data, bool show) {
+                    if (!show) return;
+                    for (float val : y_data) {
+                        if (isnan(val) || isinf(val)) continue;
+                        if (val > 1000.0f) val = 1000.0f;
+                        if (val < -1000.0f) val = -1000.0f;
+                        if (first_val) {
+                            temp_y_min = val;
+                            temp_y_max = val;
+                            first_val = false;
+                        } else {
+                            if (val < temp_y_min) temp_y_min = val;
+                            if (val > temp_y_max) temp_y_max = val;
+                        }
+                    }
+                };
+
+                check_y_bounds(plot_data_A, plot_show_A);
+                check_y_bounds(plot_data_B, plot_show_B);
+                check_y_bounds(plot_data_Res, plot_show_Res);
+
+                if (temp_y_max == temp_y_min) {
+                    temp_y_max += 1.0f;
+                    temp_y_min -= 1.0f;
+                } else {
+                    float padding = (temp_y_max - temp_y_min) * 0.1f;
+                    temp_y_max += padding;
+                    temp_y_min -= padding;
+                }
+                
+                plot_y_min = temp_y_min;
+                plot_y_max = temp_y_max;
+            }
+
+            // Функция преобразования математических координат в экранные пиксели
             auto get_screen_coords = [&](float x, float y) -> ImVec2 {
                 float t_x = (x - plot_x_min) / (plot_x_max - plot_x_min);
-                float t_y = (y - y_min) / (y_max - y_min);
+                float t_y = (y - plot_y_min) / (plot_y_max - plot_y_min);
                 return ImVec2(
                     canvas_pos.x + t_x * canvas_size.x,
-                    canvas_pos.y + (1.0f - t_y) * canvas_size.y // Инвертируем Y, так как в пикселях 0 находится вверху
+                    canvas_pos.y + (1.0f - t_y) * canvas_size.y
                 );
             };
 
-            // Рисуем осевые линии X = 0 и Y = 0, если они попадают в область видимости
+            // Отрисовка осевых линий X=0 и Y=0
             if (plot_x_min <= 0.0f && plot_x_max >= 0.0f) {
-                ImVec2 p0 = get_screen_coords(0.0f, y_min);
-                ImVec2 p1 = get_screen_coords(0.0f, y_max);
-                draw_list->AddLine(p0, p1, IM_COL32(80, 80, 90, 255), 1.5f);
+                ImVec2 p0 = get_screen_coords(0.0f, plot_y_min);
+                ImVec2 p1 = get_screen_coords(0.0f, plot_y_max);
+                draw_list->AddLine(p0, p1, IM_COL32(70, 72, 85, 255), 1.5f);
             }
-            if (y_min <= 0.0f && y_max >= 0.0f) {
+            if (plot_y_min <= 0.0f && plot_y_max >= 0.0f) {
                 ImVec2 p0 = get_screen_coords(plot_x_min, 0.0f);
                 ImVec2 p1 = get_screen_coords(plot_x_max, 0.0f);
-                draw_list->AddLine(p0, p1, IM_COL32(80, 80, 90, 255), 1.5f);
+                draw_list->AddLine(p0, p1, IM_COL32(70, 72, 85, 255), 1.5f);
             }
 
-            // Функция построения ломаной линии графика по точкам
+            // Вспомогательная функция рисования кривой
             auto draw_plot_line = [&](const vector<float>& y_data, ImU32 color) {
                 vector<ImVec2> points;
                 points.reserve(plot_points);
@@ -721,8 +780,7 @@ int main(int, char**)
                     float x = plot_data_x[i];
                     float y = y_data[i];
                     if (isnan(y) || isinf(y)) continue;
-                    // Ограничиваем границы вывода точек, чтобы линии не уходили далеко за рамки холста
-                    float clamped_y = max(y_min, min(y_max, y));
+                    float clamped_y = max(plot_y_min, min(plot_y_max, y));
                     points.push_back(get_screen_coords(x, clamped_y));
                 }
                 for (size_t i = 1; i < points.size(); ++i) {
@@ -730,24 +788,67 @@ int main(int, char**)
                 }
             };
 
-            // Отрисовываем графики соответствующих функций
-            if (plot_show_A) draw_plot_line(plot_data_A, IM_COL32(61, 133, 224, 255)); // Синяя линия для A(x)
-            if (plot_show_B) draw_plot_line(plot_data_B, IM_COL32(46, 204, 113, 255)); // Зеленая линия для B(x)
-            if (plot_show_Res) draw_plot_line(plot_data_Res, IM_COL32(241, 196, 15, 255)); // Желтая линия для результата
+            // Рисование графиков
+            if (plot_show_A) draw_plot_line(plot_data_A, IM_COL32(61, 133, 224, 255));
+            if (plot_show_B) draw_plot_line(plot_data_B, IM_COL32(46, 204, 113, 255));
+            if (plot_show_Res) draw_plot_line(plot_data_Res, IM_COL32(241, 196, 15, 255));
 
-            // Вывод числовых меток осей в углах холста
+            // Отображение перекрестия и значений под курсором (интерактивный режим Desmos)
+            if (ImGui::IsItemHovered() && mouse_pos.x >= canvas_pos.x && mouse_pos.x <= canvas_pos.x + canvas_size.x &&
+                mouse_pos.y >= canvas_pos.y && mouse_pos.y <= canvas_pos.y + canvas_size.y) {
+                
+                // Рисуем линии перекрестия (тонкие серые линии)
+                draw_list->AddLine(ImVec2(mouse_pos.x, canvas_pos.y), ImVec2(mouse_pos.x, canvas_pos.y + canvas_size.y), IM_COL32(200, 200, 200, 50), 1.0f);
+                draw_list->AddLine(ImVec2(canvas_pos.x, mouse_pos.y), ImVec2(canvas_pos.x + canvas_size.x, mouse_pos.y), IM_COL32(200, 200, 200, 50), 1.0f);
+
+                float mouse_x_ratio = (mouse_pos.x - canvas_pos.x) / canvas_size.x;
+                float m_x = plot_x_min + mouse_x_ratio * (plot_x_max - plot_x_min);
+
+                // Рисуем кружки на графиках и собираем подсказку координат
+                string tooltip_str = "X: " + std::to_string(m_x).substr(0, 7) + "\n";
+                
+                auto draw_hover_marker = [&](double val, bool show, ImU32 color, const string& label) {
+                    if (!show || isnan(val) || isinf(val)) return;
+                    if (val >= plot_y_min && val <= plot_y_max) {
+                        ImVec2 scr_pos = get_screen_coords(m_x, static_cast<float>(val));
+                        // Рисуем заполненный кружок цвета графика
+                        draw_list->AddCircleFilled(scr_pos, 4.0f, color);
+                        draw_list->AddCircle(scr_pos, 6.0f, IM_COL32(255, 255, 255, 200), 0, 1.0f);
+                        
+                        // Добавляем значение в тултип
+                        tooltip_str += label + "(x) = " + std::to_string(val).substr(0, 7) + "\n";
+                    }
+                };
+
+                draw_hover_marker(polyA.evaluate(m_x), plot_show_A, IM_COL32(61, 133, 224, 255), "A");
+                draw_hover_marker(polyB.evaluate(m_x), plot_show_B, IM_COL32(46, 204, 113, 255), "B");
+                if (plot_show_Res) {
+                    draw_hover_marker(polyRes.evaluate(m_x), plot_show_Res, IM_COL32(241, 196, 15, 255), "Рез");
+                }
+
+                // Ограничиваем лишний перенос строки в конце подсказки
+                if (!tooltip_str.empty() && tooltip_str.back() == '\n') {
+                    tooltip_str.pop_back();
+                }
+
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted(tooltip_str.c_str());
+                ImGui::EndTooltip();
+            }
+
+            // Вывод числовых меток диапазонов в углах холста
             char min_txt[32], max_txt[32], y_min_txt[32], y_max_txt[32];
             sprintf_s(min_txt, "X: %.1f", plot_x_min);
             sprintf_s(max_txt, "X: %.1f", plot_x_max);
-            sprintf_s(y_min_txt, "Y: %.1f", y_min);
-            sprintf_s(y_max_txt, "Y: %.1f", y_max);
+            sprintf_s(y_min_txt, "Y: %.1f", plot_y_min);
+            sprintf_s(y_max_txt, "Y: %.1f", plot_y_max);
 
-            draw_list->AddText(ImVec2(canvas_pos.x + 5, canvas_pos.y + canvas_size.y - 18), IM_COL32(180, 180, 180, 255), min_txt);
-            draw_list->AddText(ImVec2(canvas_pos.x + canvas_size.x - 70, canvas_pos.y + canvas_size.y - 18), IM_COL32(180, 180, 180, 255), max_txt);
-            draw_list->AddText(ImVec2(canvas_pos.x + 5, canvas_pos.y + canvas_size.y - 35), IM_COL32(180, 180, 180, 255), y_min_txt);
-            draw_list->AddText(ImVec2(canvas_pos.x + 5, canvas_pos.y + 5), IM_COL32(180, 180, 180, 255), y_max_txt);
+            draw_list->AddText(ImVec2(canvas_pos.x + 5, canvas_pos.y + canvas_size.y - 18), IM_COL32(150, 152, 165, 255), min_txt);
+            draw_list->AddText(ImVec2(canvas_pos.x + canvas_size.x - 70, canvas_pos.y + canvas_size.y - 18), IM_COL32(150, 152, 165, 255), max_txt);
+            draw_list->AddText(ImVec2(canvas_pos.x + 5, canvas_pos.y + canvas_size.y - 35), IM_COL32(150, 152, 165, 255), y_min_txt);
+            draw_list->AddText(ImVec2(canvas_pos.x + 5, canvas_pos.y + 5), IM_COL32(150, 152, 165, 255), y_max_txt);
 
-            // Сдвигаем курсор вывода ImGui за пределы нарисованного графика
+            // Сдвигаем курсор вывода ImGui за пределы нарисованного холста
             ImGui::SetCursorScreenPos(ImVec2(canvas_pos.x, canvas_pos.y + canvas_size.y + 10.0f));
         }
         ImGui::EndChild();
