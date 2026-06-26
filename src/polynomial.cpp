@@ -14,82 +14,82 @@ using namespace std;
 // Мы используем epsilon-окрестность (1e-9) для сравнения вещественных чисел с нулем,
 // так как из-за точности double число может быть не ровно 0, а очень близким к нему (например, 1e-16).
 void Polynomial::normalize() {
-    while (!coeffs_.empty() && abs(coeffs_.back()) < 1e-9) {
-        coeffs_.pop_back();
-    }
+  while (!coeffs_.empty() && abs(coeffs_.back()) < 1e-9) {
+    coeffs_.pop_back();
+  }
 }
 
 // Конструктор, принимающий вектор коэффициентов. После сохранения вызывается нормализация.
 Polynomial::Polynomial(const vector<double>& coeffs) : coeffs_(coeffs) {
-    normalize();
+  normalize();
 }
 
 // Степень многочлена — это индекс последнего элемента в векторе (после нормализации).
 // Если вектор пуст (многочлен равен 0), степень считается равной -1.
 int Polynomial::degree() const {
-    return coeffs_.empty() ? -1 : static_cast<int>(coeffs_.size()) - 1;
+  return coeffs_.empty() ? -1 : static_cast<int>(coeffs_.size()) - 1;
 }
 
 // Возвращает вектор коэффициентов.
 const vector<double>& Polynomial::coefficients() const {
-    return coeffs_;
+  return coeffs_;
 }
 
 // Коэффициент при старшей степени (последний элемент вектора).
 double Polynomial::leading_coefficient() const {
-    if (coeffs_.empty()) return 0.0;
-    return coeffs_.back();
+  if (coeffs_.empty()) return 0.0;
+  return coeffs_.back();
 }
 
 // Вычисление значения многочлена в точке x с помощью схемы Горнера.
 // Схема Горнера позволяет вычислить значение за O(N) умножений и сложений:
 // P(x) = a0 + x*(a1 + x*(a2 + ... + x*an)...)
 double Polynomial::evaluate(double x) const {
-    if (coeffs_.empty()) return 0.0;
-    double result = coeffs_.back();
-    for (int i = static_cast<int>(coeffs_.size()) - 2; i >= 0; --i) {
-        result = result * x + coeffs_[i];
-    }
-    return result;
+  if (coeffs_.empty()) return 0.0;
+  double result = coeffs_.back(); // Накапливаемый результат вычисления значения по схеме Горнера
+  for (int i = static_cast<int>(coeffs_.size()) - 2; i >= 0; --i) { // Индекс текущего коэффициента от старших степеней к младшим
+    result = result * x + coeffs_[i];
+  }
+  return result;
 }
 
 // Сложение многочленов: коэффициенты при одинаковых степенях просто складываются.
 Polynomial Polynomial::operator+(const Polynomial& other) const {
-    size_t max_size = max(coeffs_.size(), other.coeffs_.size());
-    vector<double> result_coeffs(max_size, 0.0);
-    for (size_t i = 0; i < max_size; ++i) {
-        double a = (i < coeffs_.size()) ? coeffs_[i] : 0.0;
-        double b = (i < other.coeffs_.size()) ? other.coeffs_[i] : 0.0;
-        result_coeffs[i] = a + b;
-    }
-    return Polynomial(result_coeffs);
+  size_t max_size = max(coeffs_.size(), other.coeffs_.size()); // Максимальный размер среди двух векторов коэффициентов
+  vector<double> result_coeffs(max_size, 0.0); // Вектор результирующих коэффициентов суммы
+  for (size_t i = 0; i < max_size; ++i) { // Индекс текущей степени x
+    double a = (i < coeffs_.size()) ? coeffs_[i] : 0.0; // Коэффициент текущей степени первого полинома
+    double b = (i < other.coeffs_.size()) ? other.coeffs_[i] : 0.0; // Коэффициент текущей степени второго полинома
+    result_coeffs[i] = a + b;
+  }
+  return Polynomial(result_coeffs);
 }
 
 // Вычитание многочленов: коэффициенты вычитаются друг из друга.
 Polynomial Polynomial::operator-(const Polynomial& other) const {
-    size_t max_size = max(coeffs_.size(), other.coeffs_.size());
-    vector<double> result_coeffs(max_size, 0.0);
-    for (size_t i = 0; i < max_size; ++i) {
-        double a = (i < coeffs_.size()) ? coeffs_[i] : 0.0;
-        double b = (i < other.coeffs_.size()) ? other.coeffs_[i] : 0.0;
-        result_coeffs[i] = a - b;
-    }
-    return Polynomial(result_coeffs);
+  size_t max_size = max(coeffs_.size(), other.coeffs_.size()); // Максимальный размер среди двух векторов коэффициентов
+  vector<double> result_coeffs(max_size, 0.0); // Вектор результирующих коэффициентов разности
+  for (size_t i = 0; i < max_size; ++i) { // Индекс текущей степени x
+    double a = (i < coeffs_.size()) ? coeffs_[i] : 0.0; // Коэффициент текущей степени первого полинома
+    double b = (i < other.coeffs_.size()) ? other.coeffs_[i] : 0.0; // Коэффициент текущей степени второго полинома
+    result_coeffs[i] = a - b;
+  }
+  return Polynomial(result_coeffs);
 }
 
 // Умножение многочленов: каждый член первого многочлена умножается на каждый член второго.
 // Новая степень члена равна сумме степеней перемножаемых членов: (a_i * x^i) * (b_j * x^j) = (a_i * b_j) * x^(i+j)
 Polynomial Polynomial::operator*(const Polynomial& other) const {
-    if (coeffs_.empty() || other.coeffs_.empty()) {
-        return Polynomial(); // Умножение на 0 дает 0
+  if (coeffs_.empty() || other.coeffs_.empty()) {
+    return Polynomial(); // Умножение на 0 дает 0
+  }
+  vector<double> result_coeffs(coeffs_.size() + other.coeffs_.size() - 1, 0.0); // Вектор результирующих коэффициентов произведения
+  for (size_t i = 0; i < coeffs_.size(); ++i) { // Цикл по степеням членов первого сомножителя
+    for (size_t j = 0; j < other.coeffs_.size(); ++j) { // Цикл по степеням членов второго сомножителя
+      result_coeffs[i + j] += coeffs_[i] * other.coeffs_[j];
     }
-    vector<double> result_coeffs(coeffs_.size() + other.coeffs_.size() - 1, 0.0);
-    for (size_t i = 0; i < coeffs_.size(); ++i) {
-        for (size_t j = 0; j < other.coeffs_.size(); ++j) {
-            result_coeffs[i + j] += coeffs_[i] * other.coeffs_[j];
-        }
-    }
-    return Polynomial(result_coeffs);
+  }
+  return Polynomial(result_coeffs);
 }
 
 // Деление многочленов «уголком» (деление с остатком).
@@ -97,140 +97,140 @@ Polynomial Polynomial::operator*(const Polynomial& other) const {
 // Полученный член частного умножается на делитель и вычитается из остатка.
 // Процесс продолжается, пока степень остатка не станет меньше степени делителя.
 pair<Polynomial, Polynomial> Polynomial::divide(const Polynomial& dividend, const Polynomial& divisor) {
-    if (divisor.degree() == -1) {
-        throw invalid_argument("Деление на нулевой многочлен невозможно!");
+  if (divisor.degree() == -1) {
+    throw invalid_argument("Деление на нулевой многочлен невозможно!");
+  }
+
+  // Если степень делимого меньше степени делителя, то частное = 0, а остаток = делимое.
+  if (dividend.degree() < divisor.degree()) {
+    return { Polynomial(), dividend };
+  }
+
+  vector<double> q_coeffs(dividend.degree() - divisor.degree() + 1, 0.0); // Вектор коэффициентов частного
+  Polynomial remainder = dividend; // Переменная для текущего делящегося остатка (начинается с делимого)
+
+  while (remainder.degree() >= divisor.degree()) {
+    int deg_diff = remainder.degree() - divisor.degree(); // Разность старших степеней делимого остатка и делителя
+    double coeff = remainder.leading_coefficient() / divisor.leading_coefficient(); // Коэффициент нового члена частного
+
+    q_coeffs[deg_diff] = coeff;
+
+    // Создаем вычитаемый член: coeff * x^deg_diff * divisor
+    vector<double> subtrahend_coeffs(deg_diff + divisor.coeffs_.size(), 0.0); // Вектор коэффициентов вычитаемого полинома
+    for (size_t i = 0; i < divisor.coeffs_.size(); ++i) {
+      subtrahend_coeffs[i + deg_diff] = divisor.coeffs_[i] * coeff;
     }
 
-    // Если степень делимого меньше степени делителя, то частное = 0, а остаток = делимое.
-    if (dividend.degree() < divisor.degree()) {
-        return { Polynomial(), dividend };
-    }
+    remainder = remainder - Polynomial(subtrahend_coeffs);
+  }
 
-    vector<double> q_coeffs(dividend.degree() - divisor.degree() + 1, 0.0);
-    Polynomial remainder = dividend;
-
-    while (remainder.degree() >= divisor.degree()) {
-        int deg_diff = remainder.degree() - divisor.degree();
-        double coeff = remainder.leading_coefficient() / divisor.leading_coefficient();
-
-        q_coeffs[deg_diff] = coeff;
-
-        // Создаем вычитаемый член: coeff * x^deg_diff * divisor
-        vector<double> subtrahend_coeffs(deg_diff + divisor.coeffs_.size(), 0.0);
-        for (size_t i = 0; i < divisor.coeffs_.size(); ++i) {
-            subtrahend_coeffs[i + deg_diff] = divisor.coeffs_[i] * coeff;
-        }
-
-        remainder = remainder - Polynomial(subtrahend_coeffs);
-    }
-
-    return { Polynomial(q_coeffs), remainder };
+  return { Polynomial(q_coeffs), remainder };
 }
 
 // Оператор деления / возвращает только частное.
 Polynomial Polynomial::operator/(const Polynomial& other) const {
-    return divide(*this, other).first;
+  return divide(*this, other).first;
 }
 
 // Оператор взятия остатка % возвращает только остаток.
 Polynomial Polynomial::operator%(const Polynomial& other) const {
-    return divide(*this, other).second;
+  return divide(*this, other).second;
 }
 
 // Алгоритм быстрого возведения в степень (бинарное возведение) за O(log N) умножений.
 // Вместо умножения полинома N раз на себя, мы используем свойства степеней:
 // P^k = (P^(k/2))^2 для четных k, и P * P^(k-1) для нечетных.
 Polynomial Polynomial::pow(int exponent) const {
-    if (exponent < 0) {
-        throw invalid_argument("Степень должна быть неотрицательной!");
+  if (exponent < 0) {
+    throw invalid_argument("Степень должна быть неотрицательной!");
+  }
+  Polynomial result({1.0}); // Результирующий полином (начальный результат P^0 = 1)
+  Polynomial base = *this; // Копия основания для возведения в степень
+  while (exponent > 0) {
+    if (exponent % 2 == 1) {
+      result = result * base;
     }
-    Polynomial result({1.0}); // P^0 = 1
-    Polynomial base = *this;
-    while (exponent > 0) {
-        if (exponent % 2 == 1) {
-            result = result * base;
-        }
-        base = base * base;
-        exponent /= 2;
-    }
-    return result;
+    base = base * base;
+    exponent /= 2;
+  }
+  return result;
 }
 
 // Перегрузка оператора ^ как синоним для метода pow.
 Polynomial Polynomial::operator^(int exponent) const {
-    return pow(exponent);
-}
-
-// Вспомогательный метод для форматирования вещественных чисел без лишних нулей в конце.
-// Например, 3.500000 -> 3.5, а 5.000000 -> 5.
-string Polynomial::double_to_string(double val) {
-    string s = std::to_string(val);
-    size_t dot_pos = s.find('.');
-    if (dot_pos != string::npos) {
-        s.erase(s.find_last_not_of('0') + 1, string::npos);
-        if (s.back() == '.') {
-            s.pop_back();
-        }
-    }
-    return s;
+  return pow(exponent);
 }
 
 // Перевод многочлена в красивую текстовую строку.
 // Обрабатывает знаки, пропуск нулевых коэффициентов, единичные степени и коэффициенты.
 string Polynomial::to_string() const {
-    if (coeffs_.empty()) {
-        return "0";
+  if (coeffs_.empty()) {
+    return "0";
+  }
+
+  // Дополнительная проверка на случай, если все коэффициенты стали очень близкими к нулю
+  bool all_zero = true;
+  for (double c : coeffs_) {
+    if (abs(c) >= 1e-9) {
+      all_zero = false;
+      break;
+    }
+  }
+  if (all_zero) {
+    return "0";
+  }
+
+  string res = "";
+  bool is_first = true;
+  for (int deg = static_cast<int>(coeffs_.size()) - 1; deg >= 0; --deg) {
+    double val = coeffs_[deg];
+    if (abs(val) < 1e-9) {
+      continue; // Пропускаем нулевые слагаемые
     }
 
-    // Дополнительная проверка на случай, если все коэффициенты стали очень близкими к нулю
-    bool all_zero = true;
-    for (double c : coeffs_) {
-        if (abs(c) >= 1e-9) {
-            all_zero = false;
-            break;
-        }
-    }
-    if (all_zero) {
-        return "0";
+    if (is_first) {
+      if (val < 0) {
+        res += "-";
+        val = -val;
+      }
+      is_first = false;
+    } else {
+      if (val < 0) {
+        res += " - ";
+        val = -val;
+      } else {
+        res += " + ";
+      }
     }
 
-    string res = "";
-    bool is_first = true;
-    for (int deg = static_cast<int>(coeffs_.size()) - 1; deg >= 0; --deg) {
-        double val = coeffs_[deg];
-        if (abs(val) < 1e-9) {
-            continue; // Пропускаем нулевые слагаемые
-        }
-
-        if (is_first) {
-            if (val < 0) {
-                res += "-";
-                val = -val;
-            }
-            is_first = false;
-        } else {
-            if (val < 0) {
-                res += " - ";
-                val = -val;
-            } else {
-                res += " + ";
-            }
-        }
-
-        if (deg == 0) {
-            res += double_to_string(val); // Свободный член (без x)
-        } else {
-            // Не пишем коэффициент, если он равен 1 (например, пишем x^2 вместо 1x^2)
-            if (abs(val - 1.0) >= 1e-9) {
-                res += double_to_string(val);
-            }
-            res += "x";
-            if (deg > 1) {
-                res += "^" + std::to_string(deg); // Степень пишется только если она больше 1
-            }
-        }
+    if (deg == 0) {
+      res += double_to_string(val); // Свободный член (без x)
+    } else {
+      // Не пишем коэффициент, если он равен 1 (например, пишем x^2 вместо 1x^2)
+      if (abs(val - 1.0) >= 1e-9) {
+        res += double_to_string(val);
+      }
+      res += "x";
+      if (deg > 1) {
+        res += "^" + std::to_string(deg); // Степень пишется только если она больше 1
+      }
     }
-    return res;
+  }
+  return res;
+}
+
+// Вспомогательный метод для форматирования вещественных чисел без лишних нулей в конце.
+// Например, 3.500000 -> 3.5, а 5.000000 -> 5.
+string Polynomial::double_to_string(double val) {
+  string s = std::to_string(val);
+  size_t dot_pos = s.find('.');
+  if (dot_pos != string::npos) {
+    s.erase(s.find_last_not_of('0') + 1, string::npos);
+    if (s.back() == '.') {
+      s.pop_back();
+    }
+  }
+  return s;
 }
 
 // --- НАЧАЛО НОВОГО ПАРСЕРА С ПОДДЕРЖКОЙ СКОБОК И ПРИОРИТЕТОВ ---
@@ -239,17 +239,18 @@ enum class TokenType {
     NUMBER, X, PLUS, MINUS, MUL, DIV, MOD, POWER, LPAREN, RPAREN, END
 };
 
+// Структура Token описывает лексическую единицу выражения (лексему)
 struct Token {
-    TokenType type;
-    double val;
-    string text;
+    TokenType type; // Тип лексемы (число, переменная, скобка, оператор и т.д.)
+    double val;     // Численное значение токена (используется только для типа NUMBER)
+    string text;    // Строковое литеральное представление токена в выражении
 };
 
 static vector<Token> tokenize(const string& str) {
-    vector<Token> tokens;
-    size_t i = 0;
+    vector<Token> tokens; // Результирующий список распознанных токенов
+    size_t i = 0;         // Индекс текущего считываемого символа строки
     while (i < str.length()) {
-        char c = str[i];
+        char c = str[i]; // Текущий анализируемый символ
         if (isspace(static_cast<unsigned char>(c))) {
             i++;
             continue;
@@ -282,15 +283,15 @@ static vector<Token> tokenize(const string& str) {
             tokens.push_back({TokenType::RPAREN, 0.0, ")"});
             i++;
         } else if (isdigit(static_cast<unsigned char>(c)) || c == '.') {
-            size_t start = i;
-            bool has_dot = (c == '.');
+            size_t start = i; // Запоминаем стартовую позицию начала числа
+            bool has_dot = (c == '.'); // Флаг наличия десятичной точки в числе
             i++;
             while (i < str.length() && (isdigit(static_cast<unsigned char>(str[i])) || (!has_dot && str[i] == '.'))) {
                 if (str[i] == '.') has_dot = true;
                 i++;
             }
-            string num_str = str.substr(start, i - start);
-            double val = stod(num_str);
+            string num_str = str.substr(start, i - start); // Выделенная подстрока числа
+            double val = stod(num_str); // Вещественное значение, полученное из строки
             tokens.push_back({TokenType::NUMBER, val, num_str});
         } else {
             throw invalid_argument(string("Неизвестный символ в выражении: ") + c);
@@ -301,15 +302,15 @@ static vector<Token> tokenize(const string& str) {
 }
 
 static vector<Token> insert_implicit_multiplication(const vector<Token>& tokens) {
-    vector<Token> result;
+    vector<Token> result; // Результат работы функции со вставленными знаками умножения
     if (tokens.empty()) return result;
     
     result.push_back(tokens[0]);
-    for (size_t i = 1; i < tokens.size(); ++i) {
-        Token prev = tokens[i - 1];
-        Token cur = tokens[i];
+    for (size_t i = 1; i < tokens.size(); ++i) { // Проходимся по токенам, начиная со второго
+        Token prev = tokens[i - 1]; // Ссылка на предыдущий токен
+        Token cur = tokens[i]; // Ссылка на текущий токен
         
-        bool need_mul = false;
+        bool need_mul = false; // Флаг, указывающий на необходимость вставить умножение (*)
         
         if (prev.type == TokenType::NUMBER && (cur.type == TokenType::X || cur.type == TokenType::LPAREN)) {
             need_mul = true;
@@ -331,8 +332,8 @@ static vector<Token> insert_implicit_multiplication(const vector<Token>& tokens)
 
 class ExpressionParser {
 private:
-    vector<Token> tokens;
-    size_t pos = 0;
+    vector<Token> tokens; // Вектор входных токенов для разбора
+    size_t pos = 0;       // Текущий индекс/позиция парсера во входном потоке токенов
 
     Token peek() {
         return tokens[pos];

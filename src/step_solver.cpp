@@ -7,13 +7,13 @@ using namespace std;
 // Пошаговое сложение
 string StepByStepSolver::add(const Polynomial& a, const Polynomial& b, Polynomial& result) {
     result = a + b;
-    string trace = "";
+    string trace = ""; // Строка для накопления подробных шагов сложения (трассировка)
     trace += "Сложение\n";
     trace += "Дано:\n";
     trace += "  A(x) = " + a.to_string() + "\n";
     trace += "  B(x) = " + b.to_string() + "\n\n";
 
-    int max_deg = max(a.degree(), b.degree());
+    int max_deg = max(a.degree(), b.degree()); // Максимальная степень среди двух слагаемых многочленов
     if (max_deg < 0) {
         trace += "Оба многочлена равны нулю. Результат: 0\n";
         return trace;
@@ -21,8 +21,8 @@ string StepByStepSolver::add(const Polynomial& a, const Polynomial& b, Polynomia
 
     trace += "Алгоритм: Складываем коэффициенты при соответствующих степенях x.\n";
     for (int deg = max_deg; deg >= 0; --deg) {
-        double coeffA = 0.0;
-        double coeffB = 0.0;
+        double coeffA = 0.0; // Коэффициент при степени deg в многочлене A
+        double coeffB = 0.0; // Коэффициент при степени deg в многочлене B
         
         if (deg >= 0 && deg < (int)a.coefficients().size()) {
             coeffA = a.coefficients()[deg];
@@ -31,7 +31,7 @@ string StepByStepSolver::add(const Polynomial& a, const Polynomial& b, Polynomia
             coeffB = b.coefficients()[deg];
         }
 
-        double sum = coeffA + coeffB;
+        double sum = coeffA + coeffB; // Результат сложения коэффициентов для степени deg
         trace += "  Степень x^" + to_string(deg) + ": ";
         trace += "(" + Polynomial::double_to_string(coeffA) + ") + (" + Polynomial::double_to_string(coeffB) + ") = " + Polynomial::double_to_string(sum) + "\n";
     }
@@ -43,13 +43,13 @@ string StepByStepSolver::add(const Polynomial& a, const Polynomial& b, Polynomia
 // Пошаговое вычитание
 string StepByStepSolver::subtract(const Polynomial& a, const Polynomial& b, Polynomial& result) {
     result = a - b;
-    string trace = "";
+    string trace = ""; // Строка для накопления подробных шагов вычитания (трассировка)
     trace += "Вычитание\n";
     trace += "Дано:\n";
     trace += "  A(x) = " + a.to_string() + "\n";
     trace += "  B(x) = " + b.to_string() + "\n\n";
 
-    int max_deg = max(a.degree(), b.degree());
+    int max_deg = max(a.degree(), b.degree()); // Максимальная степень среди двух многочленов
     if (max_deg < 0) {
         trace += "Оба многочлена равны нулю. Результат: 0\n";
         return trace;
@@ -57,8 +57,8 @@ string StepByStepSolver::subtract(const Polynomial& a, const Polynomial& b, Poly
 
     trace += "Алгоритм: Вычитаем коэффициенты при соответствующих степенях x.\n";
     for (int deg = max_deg; deg >= 0; --deg) {
-        double coeffA = 0.0;
-        double coeffB = 0.0;
+        double coeffA = 0.0; // Коэффициент при степени deg в уменьшаемом A
+        double coeffB = 0.0; // Коэффициент при степени deg в вычитаемом B
         
         if (deg >= 0 && deg < (int)a.coefficients().size()) {
             coeffA = a.coefficients()[deg];
@@ -67,7 +67,7 @@ string StepByStepSolver::subtract(const Polynomial& a, const Polynomial& b, Poly
             coeffB = b.coefficients()[deg];
         }
 
-        double diff = coeffA - coeffB;
+        double diff = coeffA - coeffB; // Результат вычитания коэффициентов для степени deg
         trace += "  Степень x^" + to_string(deg) + ": ";
         trace += "(" + Polynomial::double_to_string(coeffA) + ") - (" + Polynomial::double_to_string(coeffB) + ") = " + Polynomial::double_to_string(diff) + "\n";
     }
@@ -79,7 +79,7 @@ string StepByStepSolver::subtract(const Polynomial& a, const Polynomial& b, Poly
 // Пошаговое умножение
 string StepByStepSolver::multiply(const Polynomial& a, const Polynomial& b, Polynomial& result) {
     result = a * b;
-    string trace = "";
+    string trace = ""; // Строка для накопления шагов умножения (трассировка)
     trace += "Умножение\n";
     trace += "Дано:\n";
     trace += "  A(x) = (" + a.to_string() + ")\n";
@@ -94,18 +94,18 @@ string StepByStepSolver::multiply(const Polynomial& a, const Polynomial& b, Poly
     trace += "При этом коэффициенты перемножаются, а показатели степеней x складываются: (a * x^i) * (b * x^j) = (a * b) * x^(i+j).\n\n";
 
     trace += "Шаг 1: Промежуточные произведения членов:\n";
-    vector<double> res_coeffs(a.coefficients().size() + b.coefficients().size() - 1, 0.0);
+    vector<double> res_coeffs(a.coefficients().size() + b.coefficients().size() - 1, 0.0); // Вектор коэффициентов результирующего многочлена
     
     for (int i = a.degree(); i >= 0; --i) {
-        double ca = a.coefficients()[i];
+        double ca = a.coefficients()[i]; // Коэффициент текущего члена первого полинома (при x^i)
         if (abs(ca) < 1e-9) continue;
         
         for (int j = b.degree(); j >= 0; --j) {
-            double cb = b.coefficients()[j];
+            double cb = b.coefficients()[j]; // Коэффициент текущего члена второго полинома (при x^j)
             if (abs(cb) < 1e-9) continue;
             
-            double prod = ca * cb;
-            int deg = i + j;
+            double prod = ca * cb; // Произведение коэффициентов
+            int deg = i + j; // Степень результирующего члена (сумма степеней i и j)
             res_coeffs[deg] += prod;
             
             trace += "  (" + Polynomial::double_to_string(ca) + "x^" + to_string(i) + ") * (" + Polynomial::double_to_string(cb) + "x^" + to_string(j) + ") = " + Polynomial::double_to_string(prod) + "x^" + to_string(deg) + "\n";
@@ -142,9 +142,9 @@ string StepByStepSolver::divide(const Polynomial& dividend, const Polynomial& di
         return trace;
     }
 
-    vector<double> q_coeffs(dividend.degree() - divisor.degree() + 1, 0.0);
-    Polynomial cur_remainder = dividend;
-    int step = 1;
+    vector<double> q_coeffs(dividend.degree() - divisor.degree() + 1, 0.0); // Вектор коэффициентов частного
+    Polynomial cur_remainder = dividend; // Переменная для текущего делящегося остатка (начинается с делимого)
+    int step = 1; // Счетчик шагов деления
 
     trace += "Алгоритм: на каждом шаге делим старший член остатка на старший член делителя, записываем результат в частное, умножаем полученный член на делитель и вычитаем его из остатка.\n\n";
 
@@ -152,10 +152,10 @@ string StepByStepSolver::divide(const Polynomial& dividend, const Polynomial& di
         trace += "Шаг " + to_string(step++) + ":\n";
         trace += "  Текущий делимый остаток: " + cur_remainder.to_string() + "\n";
 
-        int deg_diff = cur_remainder.degree() - divisor.degree();
-        double lead_dividend = cur_remainder.leading_coefficient();
-        double lead_divisor = divisor.leading_coefficient();
-        double q_coeff = lead_dividend / lead_divisor;
+        int deg_diff = cur_remainder.degree() - divisor.degree(); // Разность степеней старших членов текущего остатка и делителя
+        double lead_dividend = cur_remainder.leading_coefficient(); // Старший коэффициент текущего остатка
+        double lead_divisor = divisor.leading_coefficient(); // Старший коэффициент делителя
+        double q_coeff = lead_dividend / lead_divisor; // Коэффициент нового члена частного
 
         q_coeffs[deg_diff] = q_coeff;
 
@@ -163,11 +163,11 @@ string StepByStepSolver::divide(const Polynomial& dividend, const Polynomial& di
            + Polynomial::double_to_string(lead_divisor) + "x^" + to_string(divisor.degree()) + ") = " + Polynomial::double_to_string(q_coeff) + "x^" + to_string(deg_diff) + "\n";
 
         // Формируем промежуточный вычитаемый полином: q_coeff * x^deg_diff * divisor
-        vector<double> term_coeffs(deg_diff + divisor.coefficients().size(), 0.0);
+        vector<double> term_coeffs(deg_diff + divisor.coefficients().size(), 0.0); // Вектор для коэффициентов вычитаемого полинома
         for (size_t i = 0; i < divisor.coefficients().size(); ++i) {
             term_coeffs[i + deg_diff] = divisor.coefficients()[i] * q_coeff;
         }
-        Polynomial term_poly(term_coeffs);
+        Polynomial term_poly(term_coeffs); // Временный полином, вычитаемый из текущего остатка
         trace += "  2. Умножаем этот член на делитель: " + Polynomial::double_to_string(q_coeff) + "x^" + to_string(deg_diff) + " * (" + divisor.to_string() + ") = " + term_poly.to_string() + "\n";
 
         // Вычитаем
@@ -186,9 +186,9 @@ string StepByStepSolver::divide(const Polynomial& dividend, const Polynomial& di
 
 // Пошаговое получение остатка
 string StepByStepSolver::modulo(const Polynomial& dividend, const Polynomial& divisor, Polynomial& remainder) {
-    Polynomial quotient;
-    string steps = divide(dividend, divisor, quotient, remainder);
-    string trace = steps;
+    Polynomial quotient; // Временная переменная для хранения частного (не выводится)
+    string steps = divide(dividend, divisor, quotient, remainder); // Строка с подробной трассировкой процесса деления
+    string trace = steps; // Строка для результирующего отчета
     trace += "\nИтог операции остатка от деления (%): " + (remainder.degree() == -1 ? "0" : remainder.to_string()) + "\n";
     return trace;
 }
@@ -199,44 +199,43 @@ string StepByStepSolver::power(const Polynomial& base, int exponent, Polynomial&
         throw invalid_argument("Степень должна быть неотрицательной!");
     }
 
-    string trace = "";
-    trace += "Возведение в степень\n";
-    trace += "Основание: P(x) = " + base.to_string() + "\n";
-    trace += "Показатель степени: n = " + to_string(exponent) + "\n\n";
-    trace += "Используется алгоритм бинарного возведения в степень за O(log n) умножений многочленов.\n\n";
+    string loc_string;
+    loc_string += "Возведение в степень\n";
+    loc_string += "Основание: P(x) = " + base.to_string() + "\n";
+    loc_string += "Показатель степени: n = " + to_string(exponent) + "\n\n";
+    loc_string += "Используется алгоритм бинарного возведения в степень за O(log n) умножений многочленов.\n\n";
 
-    Polynomial res({1.0}); // Начальный результат = 1 (полином степени 0)
-    Polynomial cur_base = base;
-    int exp = exponent;
-    int step = 1;
+    Polynomial res({1.0}); // Накопленный результат возведения (начинается с 1 - единичного полинома)
+    Polynomial cur_base = base; // Текущее основание степени, возводимое в квадрат на каждом шаге
+    int exp = exponent; // Рабочая копия показателя степени для пошагового деления на 2
+    int step = 1; // Счетчик шагов бинарного возведения в степень
 
     while (exp > 0) {
-        trace += "Шаг " + to_string(step++) + ":\n";
-        trace += "  Текущая степень для разбора: " + to_string(exp) + "\n";
-        trace += "  Текущее основание: " + cur_base.to_string() + "\n";
-        trace += "  Накопленный результат: " + res.to_string() + "\n";
+        loc_string += "Шаг " + to_string(step++) + ":\n";
+        loc_string += "  Текущая степень для разбора: " + to_string(exp) + "\n";
+        loc_string += "  Текущее основание: " + cur_base.to_string() + "\n";
+        loc_string += "  Накопленный результат: " + res.to_string() + "\n";
 
         if (exp % 2 == 1) {
-            trace += "  -> Показатель степени НЕЧЕТНЫЙ. Умножаем накопленный результат на основание:\n";
-            trace += "     Результат = (" + res.to_string() + ") * (" + cur_base.to_string() + ")\n";
+            loc_string += "  -> Показатель степени НЕЧЕТНЫЙ. Умножаем накопленный результат на основание:\n";
+            loc_string += "     Результат = (" + res.to_string() + ") * (" + cur_base.to_string() + ")\n";
             res = res * cur_base;
-            trace += "     = " + res.to_string() + "\n";
+            loc_string += "     = " + res.to_string() + "\n";
         } else {
-            trace += "  -> Показатель степени ЧЕТНЫЙ. Накопленный результат не изменяется.\n";
+            loc_string += "  -> Показатель степени ЧЕТНЫЙ. Накопленный результат не изменяется.\n";
         }
 
         if (exp > 1) {
-            trace += "  -> Возводим основание в квадрат для следующего шага:\n";
-            trace += "     Новое основание = (" + cur_base.to_string() + ")^2\n";
+            loc_string += "  -> Возводим основание в квадрат для следующего шага:\n";
+            loc_string += "     Новое основание = (" + cur_base.to_string() + ")^2\n";
             cur_base = cur_base * cur_base;
-            trace += "     = " + cur_base.to_string() + "\n";
+            loc_string += "     = " + cur_base.to_string() + "\n";
         }
         exp /= 2;
-        trace += "\n";
+        loc_string += "\n";
     }
 
-    result = res;
-    trace += "Возведение завершено.\n";
-    trace += "Итог: " + result.to_string() + "\n";
-    return trace;
+    loc_string += "Возведение завершено.\n";
+    loc_string += "Итог: " + res.to_string() + "\n";
+    return loc_string;
 }

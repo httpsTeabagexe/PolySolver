@@ -36,11 +36,11 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Цветовая палитра для премиального темного оформления интерфейса
 namespace Theme {
-    const ImVec4 Primary = ImVec4(0.24f, 0.52f, 0.88f, 1.00f);      // Спокойный синий акцент
-    const ImVec4 Secondary = ImVec4(0.18f, 0.80f, 0.44f, 1.00f);    // Насыщенный зеленый для успешных действий
-    const ImVec4 Warning = ImVec4(0.90f, 0.30f, 0.26f, 1.00f);      // Пастельно-красный для вывода ошибок
-    const ImVec4 Background = ImVec4(0.07f, 0.08f, 0.10f, 1.00f);   // Темно-серый/грифельный фон главного окна
-    const ImVec4 CardBg = ImVec4(0.12f, 0.13f, 0.16f, 1.00f);       // Цвет фона карточек и панелей управления
+    const ImVec4 Primary = ImVec4(0.24f, 0.52f, 0.88f, 1.00f);      // Синий акцент
+    const ImVec4 Secondary = ImVec4(0.18f, 0.80f, 0.44f, 1.00f);    // Зеленый для успешных действий
+    const ImVec4 Warning = ImVec4(0.90f, 0.30f, 0.26f, 1.00f);      // Красный для вывода ошибок
+    const ImVec4 Background = ImVec4(0.07f, 0.08f, 0.10f, 1.00f);   // Темно-серый фон главного окна
+    const ImVec4 CardBg = ImVec4(0.12f, 0.13f, 0.16f, 1.00f);       // Темно-синий фон "карточек"
     const ImVec4 Gold = ImVec4(0.95f, 0.77f, 0.06f, 1.00f);         // Золотой для выделения результатов вычислений
 }
 
@@ -73,10 +73,10 @@ int main(int, char**)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Включаем управление с клавиатуры
 
     // Загрузка шрифта с поддержкой кириллицы (Cyrillic) для корректного отображения русских символов
-    ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\arial.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
+    ImFont* font = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\arial.ttf)", 16.0f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
     if (font == nullptr) {
         // Резервный вариант, если Arial не доступен
-        io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\tahoma.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
+        io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\tahoma.ttf)", 16.0f, nullptr, io.Fonts->GetGlyphRangesCyrillic());
     }
 
     // 4. Стилизация интерфейса (округления и границы окон/кнопок)
@@ -656,8 +656,8 @@ int main(int, char**)
             ImGui::Spacing();
 
             // Определение положения и размера холста
-            ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
-            ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+            ImVec2 canvas_pos = ImGui::GetCursorScreenPos(); // Экранные координаты левого верхнего угла холста
+            ImVec2 canvas_size = ImGui::GetContentRegionAvail(); // Доступные размеры холста (ширина и высота в пикселях)
             if (canvas_size.y < 250.0f) canvas_size.y = 250.0f; // Задаем комфортную высоту холста
 
             // Делаем область холста интерактивной через невидимую кнопку ImGui
@@ -684,16 +684,16 @@ int main(int, char**)
 
             // Обработка масштабирования колесиком мыши с центрированием на курсоре (как в Desmos/Maps)
             if (ImGui::IsItemHovered()) {
-                float wheel = io.MouseWheel;
+                float wheel = io.MouseWheel; // Величина прокрутки колесика мыши (положительное - вперед, отрицательное - назад)
                 if (wheel != 0.0f) {
-                    float mouse_x_ratio = (mouse_pos.x - canvas_pos.x) / canvas_size.x;
-                    float mouse_y_ratio = 1.0f - (mouse_pos.y - canvas_pos.y) / canvas_size.y;
+                    float mouse_x_ratio = (mouse_pos.x - canvas_pos.x) / canvas_size.x; // Относительная позиция мыши по горизонтали (от 0 до 1)
+                    float mouse_y_ratio = 1.0f - (mouse_pos.y - canvas_pos.y) / canvas_size.y; // Относительная позиция мыши по вертикали (от 0 до 1)
                     
-                    float mouse_x_math = plot_x_min + mouse_x_ratio * (plot_x_max - plot_x_min);
-                    float mouse_y_math = plot_y_min + mouse_y_ratio * (plot_y_max - plot_y_min);
+                    float mouse_x_math = plot_x_min + mouse_x_ratio * (plot_x_max - plot_x_min); // Математическая координата X под курсором
+                    float mouse_y_math = plot_y_min + mouse_y_ratio * (plot_y_max - plot_y_min); // Математическая координата Y под курсором
                     
                     // Шаг масштабирования в 10%
-                    float zoom_factor = (wheel > 0.0f) ? 0.9f : 1.111f;
+                    float zoom_factor = (wheel > 0.0f) ? 0.9f : 1.111f; // Коэффициент изменения масштаба (зума)
                     
                     plot_x_min = mouse_x_math - (mouse_x_math - plot_x_min) * zoom_factor;
                     plot_x_max = mouse_x_math + (plot_x_max - mouse_x_math) * zoom_factor;
@@ -720,9 +720,9 @@ int main(int, char**)
 
             // Если активен режим авто-масштабирования по Y, рассчитываем границы Y автоматически
             if (plot_auto_y) {
-                bool first_val = true;
-                float temp_y_min = -10.0f;
-                float temp_y_max = 10.0f;
+                bool first_val = true; // Флаг для первой добавленной точки при поиске границ
+                float temp_y_min = -10.0f; // Временный минимум Y для авто-масштабирования
+                float temp_y_max = 10.0f; // Временный максимум Y для авто-масштабирования
                 
                 auto check_y_bounds = [&](const vector<float>& y_data, bool show) {
                     if (!show) return;
@@ -749,7 +749,7 @@ int main(int, char**)
                     temp_y_max += 1.0f;
                     temp_y_min -= 1.0f;
                 } else {
-                    float padding = (temp_y_max - temp_y_min) * 0.1f;
+                    float padding = (temp_y_max - temp_y_min) * 0.1f; // 10% отступ от краев
                     temp_y_max += padding;
                     temp_y_min -= padding;
                 }
@@ -786,11 +786,11 @@ int main(int, char**)
 
             // Вспомогательная функция рисования кривой (без ручного зажимания по границам, полагаясь на клиппинг)
             auto draw_plot_line = [&](const vector<float>& y_data, ImU32 color) {
-                vector<ImVec2> points;
+                vector<ImVec2> points; // Набор экранных точек для построения отрезков графика
                 points.reserve(plot_points);
                 for (int i = 0; i < plot_points; ++i) {
-                    float x = plot_data_x[i];
-                    float y = y_data[i];
+                    float x = plot_data_x[i]; // Значение аргумента x
+                    float y = y_data[i]; // Значение функции f(x)
                     if (isnan(y) || isinf(y)) continue;
                     // Линии уходят за границы холста под естественным углом
                     points.push_back(get_screen_coords(x, y));
@@ -798,8 +798,8 @@ int main(int, char**)
                 for (size_t i = 1; i < points.size(); ++i) {
                     // Рисуем отрезок, только если хотя бы одна из точек входит в разумные экранные координаты
                     // (для оптимизации и избежания переполнения координат D3D)
-                    ImVec2 pA = points[i - 1];
-                    ImVec2 pB = points[i];
+                    ImVec2 pA = points[i - 1]; // Начальная экранная точка отрезка
+                    ImVec2 pB = points[i]; // Конечная экранная точка отрезка
                     // Если координаты слишком экстремальные, пропускаем
                     if (abs(pA.y) > 10000.0f || abs(pB.y) > 10000.0f) continue;
                     draw_list->AddLine(pA, pB, color, 2.0f);
