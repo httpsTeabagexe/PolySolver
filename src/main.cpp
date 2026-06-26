@@ -760,6 +760,10 @@ int main(int, char**)
                 );
             };
 
+            // Ограничиваем область рисования графиков, осей и перекрестий рамкой холста (клиппинг/отсечение),
+            // чтобы линии не выходили за рамки холста и не перекрывали элементы интерфейса.
+            draw_list->PushClipRect(canvas_pos, ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), true);
+
             // Отрисовка осевых линий X=0 и Y=0
             if (plot_x_min <= 0.0f && plot_x_max >= 0.0f) {
                 ImVec2 p0 = get_screen_coords(0.0f, plot_y_min);
@@ -772,7 +776,7 @@ int main(int, char**)
                 draw_list->AddLine(p0, p1, IM_COL32(70, 72, 85, 255), 1.5f);
             }
 
-            // Вспомогательная функция рисования кривой
+            // Вспомогательная функция рисования кривой (без ручного зажимания по границам, полагаясь на клиппинг)
             auto draw_plot_line = [&](const vector<float>& y_data, ImU32 color) {
                 vector<ImVec2> points;
                 points.reserve(plot_points);
@@ -780,11 +784,17 @@ int main(int, char**)
                     float x = plot_data_x[i];
                     float y = y_data[i];
                     if (isnan(y) || isinf(y)) continue;
-                    float clamped_y = max(plot_y_min, min(plot_y_max, y));
-                    points.push_back(get_screen_coords(x, clamped_y));
+                    // Линии уходят за границы холста под естественным углом
+                    points.push_back(get_screen_coords(x, y));
                 }
                 for (size_t i = 1; i < points.size(); ++i) {
-                    draw_list->AddLine(points[i - 1], points[i], color, 2.0f);
+                    // Рисуем отрезок, только если хотя бы одна из точек входит в разумные экранные координаты
+                    // (для оптимизации и избежания переполнения координат D3D)
+                    ImVec2 pA = points[i - 1];
+                    ImVec2 pB = points[i];
+                    // Если координаты слишком экстремальные, пропускаем
+                    if (abs(pA.y) > 10000.0f || abs(pB.y) > 10000.0f) continue;
+                    draw_list->AddLine(pA, pB, color, 2.0f);
                 }
             };
 
@@ -835,6 +845,9 @@ int main(int, char**)
                 ImGui::TextUnformatted(tooltip_str.c_str());
                 ImGui::EndTooltip();
             }
+
+            // Завершаем отсечение (клиппинг) рисования
+            draw_list->PopClipRect();
 
             // Вывод числовых меток диапазонов в углах холста
             char min_txt[32], max_txt[32], y_min_txt[32], y_max_txt[32];
