@@ -73,10 +73,34 @@ target_include_directories(imgui PUBLIC
     ${imgui_SOURCE_DIR}/backends
 )
 
+# Подключаем библиотеку ImPlot для графиков
+FetchContent_Declare(
+    implot
+    GIT_REPOSITORY https://github.com/epezent/implot.git
+    GIT_TAG        v0.16
+)
+
+FetchContent_GetProperties(implot)
+if(NOT implot_POPULATED)
+    FetchContent_Populate(implot)
+endif()
+
+# Создаем статическую библиотеку implot из скачанных исходных файлов
+add_library(implot STATIC
+    ${implot_SOURCE_DIR}/implot.cpp
+    ${implot_SOURCE_DIR}/implot_items.cpp
+    ${implot_SOURCE_DIR}/implot_demo.cpp
+)
+target_include_directories(implot PUBLIC
+    ${implot_SOURCE_DIR}
+)
+target_link_libraries(implot PUBLIC imgui)
+
 # Main GUI / Application Executable
 add_executable(PolySolver src/main.cpp src/file_utils.cpp)
 target_link_libraries(PolySolver PRIVATE 
     PolyCore 
+    implot
     imgui 
     d3d11 
     d3dcompiler 
