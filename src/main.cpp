@@ -200,8 +200,8 @@ int main(int, char**)
         ImGui::SameLine();
         ImGui::TextDisabled("| Арифметика многочленов, импорт/экспорт и трассировка решений");
         
-        // Кнопка Справка в правой части заголовочной панели
-        ImGui::SameLine(ImGui::GetWindowWidth() - 95);
+        // Кнопка Справка в правой части заголовочной панели (выравнивание по правому краю контента)
+        ImGui::SameLine(ImGui::GetContentRegionMax().x - 85.0f);
         if (ImGui::Button("Справка")) {
             ImGui::OpenPopup("О программе PolySolver");
         }
@@ -239,10 +239,11 @@ int main(int, char**)
         {
             // Секция 1: Ввод многочленов и файловые диалоги
             ImGui::TextColored(Theme::Primary, "1. Ввод многочленов");
+            ImGui::Spacing();
             
-            // Кнопки для Импорта и Экспорта
-            ImGui::SameLine(ImGui::GetWindowWidth() - 250);
-            if (ImGui::Button("Импорт из файла")) {
+            // Кнопки для Импорта и Экспорта (симметрично занимают всю ширину)
+            float file_btn_w = (ImGui::GetContentRegionAvail().x - 10.0f) / 2.0f;
+            if (ImGui::Button("Импорт из файла", ImVec2(file_btn_w, 30))) {
                 string filepath = open_file_dialog(hwnd);
                 if (!filepath.empty()) {
                     string loadedA, loadedB;
@@ -264,7 +265,7 @@ int main(int, char**)
                 }
             }
             ImGui::SameLine();
-            if (ImGui::Button("Экспорт в файл")) {
+            if (ImGui::Button("Экспорт в файл", ImVec2(file_btn_w, 30))) {
                 string filepath = save_file_dialog(hwnd);
                 if (!filepath.empty()) {
                     if (save_polynomials(filepath, polyA_buf, polyB_buf)) {
@@ -278,8 +279,9 @@ int main(int, char**)
             ImGui::Separator();
             ImGui::Spacing();
 
-            // Ввод формулы для A(x)
+            // Ввод формулы для A(x) (выравнивание по ширине и симметрия)
             ImGui::Text("A(x):");
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 200.0f);
             if (ImGui::InputText("##inputA", polyA_buf, IM_ARRAYSIZE(polyA_buf))) {
                 try {
                     polyA = Polynomial::from_string(polyA_buf);
@@ -292,16 +294,14 @@ int main(int, char**)
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Формат ввода: '3x^2 - 2x + 1', '-x^4 + 2.5x', '5'");
             }
-
-            // Быстрые шаблоны для управления формулой A(x)
             ImGui::SameLine();
-            if (ImGui::Button("Шаблон: Квадратный##A")) {
+            if (ImGui::Button("Шаблон##A", ImVec2(100, 0))) {
                 strcpy_s(polyA_buf, "x^2 - 4x + 3");
                 polyA = Polynomial::from_string(polyA_buf);
                 update_plots();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Очистить##A")) {
+            if (ImGui::Button("Очистить##A", ImVec2(80, 0))) {
                 polyA_buf[0] = '\0';
                 polyA = Polynomial();
                 update_plots();
@@ -311,6 +311,7 @@ int main(int, char**)
 
             // Ввод формулы для B(x)
             ImGui::Text("B(x):");
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 200.0f);
             if (ImGui::InputText("##inputB", polyB_buf, IM_ARRAYSIZE(polyB_buf))) {
                 try {
                     polyB = Polynomial::from_string(polyB_buf);
@@ -320,16 +321,14 @@ int main(int, char**)
                     error_message = string("Ошибка в B(x): ") + e.what();
                 }
             }
-
-            // Шаблоны для B(x)
             ImGui::SameLine();
-            if (ImGui::Button("Шаблон: Линейный##B")) {
+            if (ImGui::Button("Шаблон##B", ImVec2(100, 0))) {
                 strcpy_s(polyB_buf, "x - 3");
                 polyB = Polynomial::from_string(polyB_buf);
                 update_plots();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Очистить##B")) {
+            if (ImGui::Button("Очистить##B", ImVec2(80, 0))) {
                 polyB_buf[0] = '\0';
                 polyB = Polynomial();
                 update_plots();
@@ -340,8 +339,8 @@ int main(int, char**)
 
             // Секция 2: Операции и настройки режима отладки
             ImGui::TextColored(Theme::Primary, "2. Математические операции");
-            ImGui::SameLine(ImGui::GetWindowWidth() - 250);
-            ImGui::Checkbox("Режим отладки (шаги)", &debug_mode);
+            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 140.0f);
+            ImGui::Checkbox("Отладка (шаги)", &debug_mode);
             
             ImGui::Separator();
             ImGui::Spacing();
@@ -458,23 +457,56 @@ int main(int, char**)
                     error_message = e.what();
                 }
             }
+            ImGui::SameLine();
+            
+            // Операция сравнения многочленов (делает сетку кнопок 3х2 симметричной и завершенной)
+            if (ImGui::Button("Сравнить (A==B)", ImVec2(btn_w, 40))) {
+                try {
+                    polyA = Polynomial::from_string(polyA_buf);
+                    polyB = Polynomial::from_string(polyB_buf);
+                    if (debug_mode) {
+                        debug_steps = "Сравнение многочленов на равенство:\n";
+                        debug_steps += "A(x) = " + polyA.to_string() + "\n";
+                        debug_steps += "B(x) = " + polyB.to_string() + "\n\n";
+                        if (polyA == polyB) {
+                            debug_steps += "Коэффициенты многочленов полностью совпадают.\nВывод: A(x) == B(x)\n";
+                        } else {
+                            debug_steps += "Коэффициенты многочленов различаются.\nВывод: A(x) != B(x)\n";
+                        }
+                    } else {
+                        debug_steps = "";
+                    }
+                    result_title = "Сравнение: A(x) и B(x)";
+                    if (polyA == polyB) {
+                        result_poly_str = "Многочлены равны:\nA(x) == B(x)";
+                    } else {
+                        result_poly_str = "Многочлены не равны:\nA(x) != B(x)";
+                    }
+                    plot_show_Res = false; // Нет результирующего многочлена для вывода на графике
+                    error_message = "";
+                    update_plots();
+                } catch (const exception& e) {
+                    error_message = e.what();
+                }
+            }
 
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
 
-            // Возведение выбранного полинома в целую степень
+            // Возведение выбранного полинома в целую степень (выравнивание в линию)
             ImGui::Text("Возведение в степень:");
-            ImGui::RadioButton("Многочлен A(x)", &is_power_of_A, 1); ImGui::SameLine();
-            ImGui::RadioButton("Многочлен B(x)", &is_power_of_A, 0);
+            ImGui::SameLine();
+            ImGui::RadioButton("A(x)", &is_power_of_A, 1); ImGui::SameLine();
+            ImGui::RadioButton("B(x)", &is_power_of_A, 0);
             
-            ImGui::SetNextItemWidth(100);
-            ImGui::InputInt("Показатель##exp", &power_exp);
+            ImGui::SetNextItemWidth(120);
+            ImGui::InputInt("Степень##exp", &power_exp);
             if (power_exp < 0) power_exp = 0;
             if (power_exp > 20) power_exp = 20; // Ограничиваем степень 20 для избежания перегрузки памяти при перемножении векторов
             
             ImGui::SameLine();
-            if (ImGui::Button("Вычислить степень", ImVec2(150, 25))) {
+            if (ImGui::Button("Вычислить степень", ImVec2(160, 0))) {
                 try {
                     if (is_power_of_A == 1) {
                         polyA = Polynomial::from_string(polyA_buf);
@@ -508,12 +540,13 @@ int main(int, char**)
             ImGui::Separator();
             ImGui::Spacing();
 
-            // Вычисление значения многочленов при конкретном значении x
-            ImGui::Text("Вычислить значение в точке x:");
-            ImGui::SetNextItemWidth(150);
-            ImGui::InputDouble("x##eval", &eval_x, 0.1, 1.0, "%.3f");
+            // Вычисление значения многочленов при конкретном значении x (компактное выравнивание)
+            ImGui::Text("Вычислить в точке x:");
             ImGui::SameLine();
-            if (ImGui::Button("Вычислить##btn")) {
+            ImGui::SetNextItemWidth(120);
+            ImGui::InputDouble("##eval_val", &eval_x, 0.1, 1.0, "%.3f");
+            ImGui::SameLine();
+            if (ImGui::Button("Вычислить##btn", ImVec2(160, 0))) {
                 try {
                     polyA = Polynomial::from_string(polyA_buf);
                     polyB = Polynomial::from_string(polyB_buf);
